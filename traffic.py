@@ -69,8 +69,7 @@ def load_data(data_dir):
             image = cv2.imread(image_file_path, cv2.IMREAD_COLOR)
             image = cv2.resize(image, dimensions)
             images.append(image)
-            labels.append(os.path.basename(os.path.dirname(image_file_path)))   
-    breakpoint()   
+            labels.append(os.path.basename(os.path.dirname(image_file_path)))    
     return (images, labels)
 
 
@@ -90,16 +89,26 @@ def get_model():
             data_format = "channels_last"
         ),
 
-        # should use 2d, not 3d, bc we are dealing with 2d images
-        tf.keras.layers.MaxPooling2D(
-            pool_size = (n, n)
+        tf.keras.layers.MaxPooling2D(pool_size = (n, n)),
+
+        tf.keras.layers.Conv2D(
+            32, k, activation="relu", 
+            input_shape=(IMG_HEIGHT, IMG_WIDTH, 3),
+            data_format = "channels_last"
         ),
+
+        # I am feeding in 1024 feature maps each containing 56 nodes,
+        # totaling 57344 input nodes
+
+        tf.keras.layers.MaxPooling2D(pool_size = (n, n)),
 
         tf.keras.layers.Flatten(),
 
-        tf.keras.layers.Dense(128, activation="relu"),
-        # add dropouut to previous layer to avoid overfitting
-        tf.keras.layers.Dropout(0.5),   
+        tf.keras.layers.Dense(2056, activation="relu"),
+        tf.keras.layers.Dropout(0.4),   
+
+        tf.keras.layers.Dense(256, activation="relu"),
+        tf.keras.layers.Dropout(0.25),
 
         tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
     ])
