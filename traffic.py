@@ -11,7 +11,8 @@ IMG_WIDTH = 30
 IMG_HEIGHT = 30
 NUM_CATEGORIES = 43
 TEST_SIZE = 0.4
-
+MAX_POOLING_N = 2
+KERNAL_N = 3
 
 def main():
 
@@ -60,16 +61,16 @@ def load_data(data_dir):
     """
     images = []
     labels = []
+    dimensions = (IMG_WIDTH, IMG_HEIGHT)
     for directory in os.listdir(data_dir):
         subdirectory_path = os.path.join(data_dir, directory)
         for image_name in os.listdir(subdirectory_path):
             image_file_path = os.path.join(data_dir, directory, image_name)
-            # now read image_file as ndarray
-            image = cv2.imread(image_file_path, cv2.IMREAD_COLOR)  # automatically reads as ndarray
+            image = cv2.imread(image_file_path, cv2.IMREAD_COLOR)
+            image = cv2.resize(image, dimensions)
             images.append(image)
-            # get the name of the numbered subdirectory
-            labels.append(os.path.basename(os.path.dirname(image_file_path)))        
-    breakpoint()
+            labels.append(os.path.basename(os.path.dirname(image_file_path)))   
+    breakpoint()   
     return (images, labels)
 
 
@@ -79,7 +80,37 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
-    raise NotImplementedError
+    n = MAX_POOLING_N
+    k = KERNAL_N
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(
+            32, k, activation="relu", 
+            input_shape=(IMG_HEIGHT, IMG_WIDTH, 3),
+            data_format = "channels_last"
+        ),
+
+        # should use 2d, not 3d, bc we are dealing with 2d images
+        tf.keras.layers.MaxPooling2D(
+            pool_size = (n, n)
+        ),
+
+        tf.keras.layers.Flatten(),
+
+        tf.keras.layers.Dense(128, activation="relu"),
+        # add dropouut to previous layer to avoid overfitting
+        tf.keras.layers.Dropout(0.5),   
+
+        tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
+    ])
+
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+
+    return model
 
 
 if __name__ == "__main__":
